@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  genericName String?
+  barcode     String?
+  sku         String?
+  drugType    String?
+  baseUnit    String?
+  sellPrice   Decimal
+  
+  // Relations
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+  
+  batches     ProductBatch[]
+  units       ProductUnit[]
+  ledgers     StockLedger[]
+  transactionItems TransactionItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  products    Product[]
+}
+
+model ProductBatch {
+  id          Int      @id @default(autoincrement())
+  batchNumber String
+  expiryDate  DateTime?
+  stock       Int
+  buyPrice    Decimal
+  
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   Int
+  
+  ledgers     StockLedger[]
+  transactionItems TransactionItem[]
+}
+
+model ProductUnit {
+  id               Int     @id @default(autoincrement())
+  name             String
+  conversionFactor Int
+  sellPrice        Decimal
+  barcode          String?
+  
+  product          Product @relation(fields: [productId], references: [id])
+  productId        Int
+}
+
+model StockLedger {
+  id              Int      @id @default(autoincrement())
+  type            String   // IN, OUT, SALE, ADJ
+  quantity        Int
+  balanceSnapshot Int
+  notes           String?
+  userId          Int?
+  createdAt       DateTime @default(now())
+  
+  product         Product  @relation(fields: [productId], references: [id])
+  productId       Int
+  
+  batch           ProductBatch? @relation(fields: [batchId], references: [id])
+  batchId         Int?
+}
+
+model Transaction {
+  id            Int      @id @default(autoincrement())
+  total         Decimal
+  paymentMethod String?
+  userId        Int?
+  date          DateTime @default(now())
+  
+  items         TransactionItem[]
+}
+
+model TransactionItem {
+  id             Int      @id @default(autoincrement())
+  quantity       Int      // Quantity in the specific unit
+  totalBaseQty   Int      // Converted to base unit
+  price          Decimal
+  unitName       String?
+  conversionFactor Int?
+
+  transaction    Transaction @relation(fields: [transactionId], references: [id])
+  transactionId  Int
+  
+  product        Product  @relation(fields: [productId], references: [id])
+  productId      Int
+  
+  batch          ProductBatch? @relation(fields: [batchId], references: [id])
+  batchId        Int?
+}
